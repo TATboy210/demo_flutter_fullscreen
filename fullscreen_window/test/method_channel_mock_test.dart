@@ -27,7 +27,8 @@ void main() {
             case 'getScreenSize':
               return <String, dynamic>{'width': 1920, 'height': 1080};
             default:
-              throw MissingPluginException('No implementation for ${call.method}');
+              throw MissingPluginException(
+                  'No implementation for ${call.method}');
           }
         },
       );
@@ -78,7 +79,8 @@ void main() {
             case 'getScreenSize':
               return <String, dynamic>{'width': 1920, 'height': 1080};
             default:
-              throw MissingPluginException('No implementation for ${call.method}');
+              throw MissingPluginException(
+                  'No implementation for ${call.method}');
           }
         },
       );
@@ -113,7 +115,8 @@ void main() {
             case 'getScreenSize':
               return <String, dynamic>{'width': 2560, 'height': 1600};
             default:
-              throw MissingPluginException('No implementation for ${call.method}');
+              throw MissingPluginException(
+                  'No implementation for ${call.method}');
           }
         },
       );

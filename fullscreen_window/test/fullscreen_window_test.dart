@@ -28,15 +28,18 @@ void main() {
   test('可以通过 setter 替换平台实例', () {
     final mock = MockFullscreenWindowPlatform();
     FullScreenWindowPlatform.instance = mock;
-    expect(FullScreenWindowPlatform.instance, isA<MockFullscreenWindowPlatform>());
+    expect(
+        FullScreenWindowPlatform.instance, isA<MockFullscreenWindowPlatform>());
   });
 
   test('替换后可以恢复默认实例', () {
     final mock = MockFullscreenWindowPlatform();
     FullScreenWindowPlatform.instance = mock;
-    expect(FullScreenWindowPlatform.instance, isA<MockFullscreenWindowPlatform>());
+    expect(
+        FullScreenWindowPlatform.instance, isA<MockFullscreenWindowPlatform>());
 
     FullScreenWindowPlatform.instance = initialPlatform;
-    expect(FullScreenWindowPlatform.instance, isA<MethodChannelFullscreenWindow>());
+    expect(FullScreenWindowPlatform.instance,
+        isA<MethodChannelFullscreenWindow>());
   });
 }

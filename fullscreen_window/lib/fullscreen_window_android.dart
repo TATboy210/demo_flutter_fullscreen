@@ -12,10 +12,12 @@ class FullScreenWindowAndroid extends FullScreenWindowPlatform {
 
   @override
   Future<void> setFullScreen(bool isFullScreen) async {
-    if (isFullScreen) { //OK for Android, fail for windows/web
+    if (isFullScreen) {
+      //OK for Android, fail for windows/web
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     } else {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+          overlays: SystemUiOverlay.values);
     }
   }
 
@@ -27,5 +29,4 @@ class FullScreenWindowAndroid extends FullScreenWindowPlatform {
     var data = context.findAncestorWidgetOfExactType<MediaQuery>()!.data;
     return data.size;
   }
-
 }

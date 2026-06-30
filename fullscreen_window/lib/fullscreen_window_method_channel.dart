@@ -13,7 +13,8 @@ class MethodChannelFullscreenWindow extends FullScreenWindowPlatform {
 
   @override
   Future<void> setFullScreen(bool isFullScreen) async {
-    await methodChannel.invokeMethod<void>('setFullScreen', { "isFullScreen": isFullScreen });
+    await methodChannel
+        .invokeMethod<void>('setFullScreen', {"isFullScreen": isFullScreen});
   }
 
   @override
@@ -30,8 +31,8 @@ class MethodChannelFullscreenWindow extends FullScreenWindowPlatform {
     int width = map!["width"];
     int height = map["height"];
 
-    var size = Size(width.toDouble() / devicePixelRatio, height.toDouble() / devicePixelRatio);
+    var size = Size(width.toDouble() / devicePixelRatio,
+        height.toDouble() / devicePixelRatio);
     return size;
   }
-
 }

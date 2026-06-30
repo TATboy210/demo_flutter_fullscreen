@@ -106,7 +106,8 @@ void main() {
 
     test('Token 验证机制', () {
       expect(
-        () => FullScreenWindowPlatform.instance = MockFullscreenWindowPlatform(),
+        () =>
+            FullScreenWindowPlatform.instance = MockFullscreenWindowPlatform(),
         returnsNormally,
       );
     });
@@ -288,7 +289,8 @@ void main() {
       FullScreenWindowPlatform.instance = mock;
 
       // 默认返回主显示器尺寸
-      final primarySize = await FullScreenWindowPlatform.instance.getScreenSize(null);
+      final primarySize =
+          await FullScreenWindowPlatform.instance.getScreenSize(null);
       expect(primarySize, isNotNull);
     });
   });

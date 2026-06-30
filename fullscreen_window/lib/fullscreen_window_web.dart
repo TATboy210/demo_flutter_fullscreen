@@ -34,5 +34,4 @@ class FullScreenWindowWeb extends FullScreenWindowPlatform {
     var height = web.window.screen.height;
     return Size(width.toDouble(), height.toDouble());
   }
-
 }

@@ -128,7 +128,10 @@ void main() {
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        const Text('fullscreen_window', style: TextStyle(fontSize: 18)),
+                        const Text(
+                          'fullscreen_window',
+                          style: TextStyle(fontSize: 18),
+                        ),
                         const SizedBox(height: 12),
                         const Text('窗口模式'),
                         const SizedBox(height: 12),
@@ -164,11 +167,15 @@ void main() {
                     children: const [
                       ListTile(
                         leading: Icon(Icons.check_circle, color: Colors.green),
-                        title: Text('[12:00:00] fullscreen_window.setFullScreen -> 成功'),
+                        title: Text(
+                          '[12:00:00] fullscreen_window.setFullScreen -> 成功',
+                        ),
                       ),
                       ListTile(
                         leading: Icon(Icons.error, color: Colors.red),
-                        title: Text('[12:00:01] fullscreen_window.setFullScreen -> 失败'),
+                        title: Text(
+                          '[12:00:01] fullscreen_window.setFullScreen -> 失败',
+                        ),
                       ),
                     ],
                   ),
@@ -207,10 +214,26 @@ void main() {
                     Wrap(
                       spacing: 8,
                       children: [
-                        ChoiceChip(label: const Text('自动检测'), selected: true, onSelected: (_) {}),
-                        ChoiceChip(label: const Text('Windows'), selected: false, onSelected: (_) {}),
-                        ChoiceChip(label: const Text('Linux'), selected: false, onSelected: (_) {}),
-                        ChoiceChip(label: const Text('macOS'), selected: false, onSelected: (_) {}),
+                        ChoiceChip(
+                          label: const Text('自动检测'),
+                          selected: true,
+                          onSelected: (_) {},
+                        ),
+                        ChoiceChip(
+                          label: const Text('Windows'),
+                          selected: false,
+                          onSelected: (_) {},
+                        ),
+                        ChoiceChip(
+                          label: const Text('Linux'),
+                          selected: false,
+                          onSelected: (_) {},
+                        ),
+                        ChoiceChip(
+                          label: const Text('macOS'),
+                          selected: false,
+                          onSelected: (_) {},
+                        ),
                       ],
                     ),
                   ],
