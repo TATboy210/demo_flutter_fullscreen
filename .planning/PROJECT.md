@@ -1,12 +1,12 @@
-# Demo Fullscreen — 双包对比测试
+# Demo Fullscreen — fullscreen_window 解包优化 + macOS 支持
 
 ## What This Is
 
-一个 Flutter 桌面应用，用于对比学习 `fullscreen_window` 和 `flutter_fullscreen` 两个全屏插件的 API 行为差异。通过同时接入两个包，在同一页面展示它们的调用方式、返回值、平台支持等差异，帮助开发者理解并选型。
+解包学习 `fullscreen_window` Flutter 全屏插件的联邦插件架构，理解其 Windows (C++)、Linux (C)、Android/iOS (Dart)、Web (Dart) 多平台实现，并为其添加 macOS 原生支持（NSWindow.toggleFullScreen）。
 
 ## Core Value
 
-在同一环境中直观对比两个全屏插件的 API 行为和平台表现差异。
+为 fullscreen_window 添加 macOS 原生全屏支持，填补其平台覆盖空白。
 
 ## Requirements
 

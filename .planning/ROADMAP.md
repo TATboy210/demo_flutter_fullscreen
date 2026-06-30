@@ -1,100 +1,98 @@
-# Roadmap — Demo Fullscreen 双包对比测试
+# Roadmap — fullscreen_window 解包优化 + macOS 支持
 
 **Mode:** mvp
-**Phases:** 2
-**Requirements:** 18 total
+**Phases:** 3
+**Requirements:** 12 total
 
 ---
 
-## Phase 1: Core — 双包全屏控制
+## Phase 1: 架构分析与源码 Fork
 
-**Goal:** 添加 flutter_fullscreen 依赖，重写 main.dart 为双包对比页面，实现两个包各自的全屏切换和状态显示。
-**Mode:** mvp
+**Goal:** 深度解构 fullscreen_window 联邦插件架构，Fork 源码到本地，适配 Dart 3.x SDK。
+**Status:** ✅ Complete
 
 ### Requirements
 
-| ID | Requirement |
-|----|-------------|
-| CTRL-01 | 用户可以点击按钮使用 fullscreen_window 进入/退出全屏 |
-| CTRL-02 | 用户可以点击按钮使用 flutter_fullscreen 进入/退出全屏 |
-| CTRL-03 | 页面显示当前全屏状态（每个包各自的状态指示器） |
-| CTRL-04 | 两个包的全屏操作互不干扰（独立调用） |
-| UI-01 | 页面使用 Material 3 主题，与现有应用一致 |
-| UI-02 | 页面布局清晰，两个包的控制区域左右或上下分明 |
-| UI-03 | 中文界面，与现有应用一致 |
-
-### Success Criteria
-
-1. 用户点击 "fullscreen_window 全屏" 按钮后窗口进入全屏，状态指示器更新为"全屏中"
-2. 用户点击 "flutter_fullscreen 全屏" 按钮后窗口进入全屏，状态指示器更新为"全屏中"
-3. 两个包的按钮和状态指示器独立工作，互不影响
-4. 页面使用 Material 3 主题，中文界面，布局左右分明
-5. flutter_fullscreen 的 `ensureInitialized()` 在 main() 中正确调用
+| ID | Requirement | Status |
+|----|-------------|--------|
+| ARCH-01 | 理解 fullscreen_window 5 平台源码级架构 | ✅ Done |
+| ARCH-02 | 理解 MethodChannel 通信机制 | ✅ Done |
+| ARCH-03 | 理解 Windows/Linux 原生全屏实现 | ✅ Done |
+| FORK-01 | Fork fullscreen_window-1.2.1 源码到本地 | ✅ Done |
+| SDK-01 | 更新 SDK 约束适配 Dart 3.x | ✅ Done |
+| SDK-02 | flutter pub get 验证依赖解析 | ✅ Done |
 
 ### Deliverables
 
-- `pubspec.yaml`: 添加 `flutter_fullscreen` 依赖
-- `lib/main.dart`: 重写为双包对比页面，含全屏按钮和状态指示器
+- `fullscreen_window/` — 完整源码 fork
+- `fullscreen_window/pubspec.yaml` — SDK 约束已更新
 
 ---
 
-## Phase 2: Enhancement — API 对比、依赖信息、调用日志
+## Phase 2: macOS 原生支持
 
-**Goal:** 添加 API 签名对比面板、依赖信息展示、调用日志记录功能，完成全部对比信息展示。
-**Mode:** mvp
+**Goal:** 为 fullscreen_window 添加 macOS 原生全屏支持，使用 NSWindow.toggleFullScreen API。
+**Status:** ✅ Complete
 
 ### Requirements
 
-| ID | Requirement |
-|----|-------------|
-| API-01 | 页面展示两个包的 API 方法签名对比 |
-| API-02 | 页面展示两个包的返回值差异 |
-| API-03 | 页面展示平台支持矩阵 |
-| API-04 | 页面展示两个包的通信架构差异 |
-| DEP-01 | 页面展示两个包的依赖树 |
-| DEP-02 | 页面展示两个包的体积差异 |
-| DEP-03 | 页面展示已知陷阱列表 |
-| LOG-01 | 页面记录每次 API 调用的时间戳和方法名 |
-| LOG-02 | 页面显示调用结果（成功/失败/异常） |
-| LOG-03 | 用户可以清空调用日志 |
-| LOG-04 | 日志区域可滚动，最新的在最上面 |
-
-### Success Criteria
-
-1. 页面包含可折叠的 API 对比区域，展示方法签名、返回值、平台支持、架构差异
-2. 页面包含依赖信息区域，展示依赖树、体积、已知陷阱
-3. 每次全屏操作后日志区域显示带时间戳的调用记录和结果
-4. 用户点击"清空日志"按钮后日志区域变为空
-5. 日志区域可滚动，最新记录在最上方
+| ID | Requirement | Status |
+|----|-------------|--------|
+| MAC-01 | 创建 macOS ObjC 插件类 | ✅ Done |
+| MAC-02 | 实现 setFullScreen (NSWindow.toggleFullScreen) | ✅ Done |
+| MAC-03 | 实现 getScreenSize (NSScreen × backingScaleFactor) | ✅ Done |
+| REG-01 | pubspec.yaml 注册 macos 平台 | ✅ Done |
+| REG-02 | demo_fullscreen 引用本地路径 | ✅ Done |
 
 ### Deliverables
 
-- `lib/main.dart`: 扩展为包含 API 对比面板、依赖信息区、调用日志区
+- `fullscreen_window/macos/Classes/FullscreenWindowPlugin.h` — ObjC 头文件
+- `fullscreen_window/macos/Classes/FullscreenWindowPlugin.m` — ObjC 实现
+- `fullscreen_window/pubspec.yaml` — macOS 平台注册
+- `demo_fullscreen/pubspec.yaml` — 本地路径引用
+
+---
+
+## Phase 3: 验证与质量保证
+
+**Goal:** 验证 fork 后的代码质量、功能正确性，更新项目文档。
+**Status:** ⏳ In Progress (2/3)
+
+### Requirements
+
+| ID | Requirement | Status |
+|----|-------------|--------|
+| VER-01 | flutter analyze 零问题通过 | ✅ Done |
+| VER-02 | Windows 功能回归测试 | ⏳ Pending |
+| VER-03 | 更新 ROADMAP/STATE 反映新方向 | ⏳ In Progress |
+
+### Deliverables
+
+- 更新的 ROADMAP.md（本文件）
+- 更新的 STATE.md
 
 ---
 
 ## Phase Summary
 
-| Phase | Requirements | Key Deliverable |
-|-------|-------------|-----------------|
-| 1: Core | 7 (CTRL-01..04, UI-01..03) | 双包全屏切换与状态显示 |
-| 2: Enhancement | 11 (API-01..04, DEP-01..03, LOG-01..04) | API 对比、依赖信息、调用日志 |
+| Phase | Requirements | Status |
+|-------|-------------|--------|
+| 1: 架构分析与源码 Fork | 6 | ✅ Complete |
+| 2: macOS 原生支持 | 5 | ✅ Complete |
+| 3: 验证与质量保证 | 3 | ⏳ In Progress (2/3) |
 
-**Total: 18/18 requirements mapped (100%)**
+**Progress: 10/12 requirements complete (83%)**
 
 ---
 
 ## Dependency Chain
 
 ```
-Phase 1 (Core)
-  └─ 全屏切换 + 状态显示
-       └─ Phase 2 (Enhancement)
-            └─ API 对比 + 依赖信息 + 调用日志
+Phase 1: 架构分析 + Fork + SDK 适配
+  └─ Phase 2: macOS 原生代码 + 平台注册
+       └─ Phase 3: 验证 + 文档更新
 ```
-
-Phase 2 depends on Phase 1 (needs working fullscreen buttons to generate logs and test API behavior).
 
 ---
 
-*Generated: 2026-06-29*
+*Generated: 2026-06-30*
