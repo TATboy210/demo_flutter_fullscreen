@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-06-30T05:37:36.566Z",
+  "phase": "replan",
+  "phase_name": "fullscreen_window 解包优化 + macOS 支持",
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "架构分析", "status": "done"},
+    {"id": 2, "name": "Fork 源码到本地", "status": "done"},
+    {"id": 3, "name": "SDK 适配 Dart 3.x", "status": "done"},
+    {"id": 4, "name": "macOS 原生代码创建", "status": "done"},
+    {"id": 5, "name": "pubspec 注册 + 本地引用", "status": "done"},
+    {"id": 6, "name": "flutter pub get 验证", "status": "done"}
+  ],
+  "remaining_tasks": [
+    {"id": 7, "name": "flutter analyze 验证", "status": "not_started"},
+    {"id": 8, "name": "Windows 平台功能测试", "status": "not_started"},
+    {"id": 9, "name": "更新 ROADMAP/STATE", "status": "not_started"}
+  ],
+  "decisions": [
+    {"decision": "方向转为 fullscreen_window 解包优化+macOS 支持", "rationale": "用户确认"},
+    {"decision": "macOS 用 NSWindow.toggleFullScreen", "rationale": "标准 API"},
+    {"decision": "getScreenSize 返回物理像素", "rationale": "匹配其他平台"}
+  ],
+  "next_action": "运行 flutter analyze，然后 /gsd-resume-work"
+}
