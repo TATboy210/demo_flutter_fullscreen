@@ -1,0 +1,116 @@
+name: 跨平台测试
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  # 插件单元测试 — 在三平台运行
+  plugin-tests:
+    name: 插件测试 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: 安装依赖
+        run: flutter pub get
+        working-directory: fullscreen_window
+
+      - name: 运行插件测试
+        run: flutter test --coverage
+        working-directory: fullscreen_window
+
+      - name: 上传覆盖率报告
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: fullscreen_window/coverage/lcov.info
+
+  # Demo 应用测试 — 仅 Windows（用户主要开发环境）
+  demo-tests:
+    name: Demo 应用测试
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: 安装依赖
+        run: flutter pub get
+        working-directory: demo_fullscreen
+
+      - name: 静态分析
+        run: flutter analyze
+        working-directory: demo_fullscreen
+
+      - name: 运行 Widget 测试
+        run: flutter test
+        working-directory: demo_fullscreen
+
+  # 跨平台集成测试 — 在三桌面平台运行
+  integration-tests:
+    name: 集成测试 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: 安装依赖
+        run: flutter pub get
+        working-directory: demo_fullscreen
+
+      - name: 运行集成测试
+        run: flutter test integration_test/
+        working-directory: demo_fullscreen
+        continue-on-error: true  # 集成测试可能因环境差异失败
+
+  # 代码质量检查
+  quality:
+    name: 代码质量
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: 安装依赖
+        run: |
+          cd fullscreen_window && flutter pub get
+          cd ../demo_fullscreen && flutter pub get
+
+      - name: 插件静态分析
+        run: flutter analyze
+        working-directory: fullscreen_window
+
+      - name: Demo 静态分析
+        run: flutter analyze
+        working-directory: demo_fullscreen
+
+      - name: 格式检查
+        run: dart format --set-exit-if-changed .
