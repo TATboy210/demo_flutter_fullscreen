@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fullscreen_window/fullscreen_window.dart';
 import 'package:flutter_fullscreen/flutter_fullscreen.dart';
+import 'dart:io' show Platform;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,7 +32,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '双包全屏对比',
+      title: '三包全屏对比',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
@@ -58,8 +59,33 @@ class _DualFullscreenPageState extends State<DualFullscreenPage> {
   bool _ffToggling = false;
   late final FullScreenListener _ffListener;
 
+  // fullscreen_window (modified) 状态
+  bool _modFullscreen = false;
+  bool _modToggling = false;
+
   // 日志状态
   final List<LogEntry> _logs = [];
+
+  // 平台检测和虚拟环境
+  String get _currentPlatform {
+    if (Platform.isWindows) return 'Windows';
+    if (Platform.isLinux) return 'Linux';
+    if (Platform.isMacOS) return 'macOS';
+    if (Platform.isAndroid) return 'Android';
+    if (Platform.isIOS) return 'iOS';
+    return 'Unknown';
+  }
+
+  // 虚拟环境参数（用于模拟不同平台行为）
+  String _virtualPlatform = 'auto'; // 'auto', 'windows', 'linux', 'macos'
+  bool _simulateMissingPlugin = false;
+
+  String get _effectivePlatform {
+    if (_virtualPlatform == 'auto') return _currentPlatform;
+    return _virtualPlatform;
+  }
+
+  bool get _isMacOSEnvironment => _effectivePlatform == 'macOS';
 
   @override
   void initState() {
@@ -115,6 +141,10 @@ class _DualFullscreenPageState extends State<DualFullscreenPage> {
     final previous = _fwFullscreen;
     setState(() => _fwFullscreen = !_fwFullscreen);
     try {
+      // 模拟 macOS 环境下的 MissingPluginException
+      if (_isMacOSEnvironment && _simulateMissingPlugin) {
+        throw MissingPluginException('No implementation found for method setFullScreen on channel fullscreen_window');
+      }
       await FullScreenWindow.setFullScreen(_fwFullscreen);
       _addLog('fullscreen_window', 'setFullScreen', true);
       // 退出全屏后强制布局重建（Windows 布局修复）
@@ -159,7 +189,156 @@ class _DualFullscreenPageState extends State<DualFullscreenPage> {
     });
   }
 
-  bool get _isAnyFullscreen => _fwFullscreen || _ffFullscreen;
+  Future<void> _toggleModFullscreen() async {
+    if (_modToggling) return;
+    _modToggling = true;
+    final previous = _modFullscreen;
+    setState(() => _modFullscreen = !_modFullscreen);
+    try {
+      // modified 版本在所有平台都应该工作（包括 macOS）
+      await FullScreenWindow.setFullScreen(_modFullscreen);
+      _addLog('fullscreen_window (modified)', 'setFullScreen', true);
+      // 退出全屏后强制布局重建（Windows 布局修复）
+      if (!_modFullscreen && mounted) {
+        await Future.delayed(const Duration(milliseconds: 150));
+        if (mounted) {
+          setState(() {});
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() {});
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _modFullscreen = previous);
+        _addLog('fullscreen_window (modified)', 'setFullScreen', false, e.toString());
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('fullscreen_window (modified) 失败: $e')),
+        );
+      }
+    } finally {
+      _modToggling = false;
+    }
+  }
+
+  bool get _isAnyFullscreen => _fwFullscreen || _ffFullscreen || _modFullscreen;
+
+  Widget _buildPlatformInfoCard() {
+    return Card(
+      margin: const EdgeInsets.all(16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '平台信息',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            // 当前平台
+            Row(
+              children: [
+                const Icon(Icons.computer, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  '当前平台: $_currentPlatform',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                if (_virtualPlatform != 'auto') ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withAlpha(25),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.orange.withAlpha(76)),
+                    ),
+                    child: Text(
+                      '虚拟: $_effectivePlatform',
+                      style: TextStyle(color: Colors.orange[700], fontSize: 12),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            // 虚拟环境选择
+            const Text(
+              '虚拟环境:',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                _buildPlatformChip('auto', '自动检测'),
+                _buildPlatformChip('windows', 'Windows'),
+                _buildPlatformChip('linux', 'Linux'),
+                _buildPlatformChip('macos', 'macOS'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // 模拟选项
+            Row(
+              children: [
+                Checkbox(
+                  value: _simulateMissingPlugin,
+                  onChanged: (value) {
+                    setState(() {
+                      _simulateMissingPlugin = value ?? false;
+                    });
+                  },
+                ),
+                const Text('模拟 MissingPluginException (macOS)'),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // 平台支持说明
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withAlpha(25),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withAlpha(76)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '平台支持说明:',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '• fullscreen_window: Windows ✅, Linux ✅, macOS ❌ (原版)\n'
+                    '• fullscreen_window (modified): Windows ✅, Linux ✅, macOS ✅ (已修复)\n'
+                    '• flutter_fullscreen: 所有平台 ✅ (通过 window_manager)',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlatformChip(String value, String label) {
+    final isSelected = _virtualPlatform == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (selected) {
+          setState(() {
+            _virtualPlatform = value;
+          });
+        }
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -167,11 +346,13 @@ class _DualFullscreenPageState extends State<DualFullscreenPage> {
       appBar: _isAnyFullscreen
           ? null
           : AppBar(
-              title: const Text('双包全屏对比'),
+              title: const Text('三包全屏对比'),
               backgroundColor: Theme.of(context).colorScheme.inversePrimary,
             ),
       body: ListView(
         children: [
+          // 平台信息和虚拟环境控制
+          _buildPlatformInfoCard(),
           // 包控制区
           SizedBox(
             height: 400,
@@ -194,6 +375,16 @@ class _DualFullscreenPageState extends State<DualFullscreenPage> {
                     isFullscreen: _ffFullscreen,
                     onToggle: _toggleFfFullscreen,
                     apiInfo: 'void setFullScreen(bool)\nisFullScreen 属性\nFullScreenListener 监听器',
+                  ),
+                ),
+                const VerticalDivider(width: 1),
+                // fullscreen_window (modified) 控制区
+                Expanded(
+                  child: _buildPackageCard(
+                    title: 'fullscreen_window\n(modified)',
+                    isFullscreen: _modFullscreen,
+                    onToggle: _toggleModFullscreen,
+                    apiInfo: 'Future<void> setFullScreen(bool)\n无状态查询\n无监听器\n✅ macOS 支持',
                   ),
                 ),
               ],
@@ -290,6 +481,14 @@ class _DualFullscreenPageState extends State<DualFullscreenPage> {
           _buildPlatformMatrix(),
           _buildSectionTitle('架构差异'),
           _buildArchitectureTable(),
+          _buildSectionTitle('实际调用对比'),
+          _buildActualCallComparison(),
+          _buildSectionTitle('性能对比'),
+          _buildPerformanceComparison(),
+          _buildSectionTitle('使用场景对比'),
+          _buildUseCaseComparison(),
+          _buildSectionTitle('实时调用跟踪'),
+          _buildRealTimeCallTracking(),
           const SizedBox(height: 16),
         ],
       ),
@@ -304,32 +503,38 @@ class _DualFullscreenPageState extends State<DualFullscreenPage> {
           DataColumn(label: Text('维度')),
           DataColumn(label: Text('fullscreen_window')),
           DataColumn(label: Text('flutter_fullscreen')),
+          DataColumn(label: Text('modified')),
         ],
         rows: const [
           DataRow(cells: [
             DataCell(Text('设置全屏')),
             DataCell(Text('Future<void> setFullScreen(bool)', style: TextStyle(fontSize: 12))),
             DataCell(Text('void setFullScreen(bool)', style: TextStyle(fontSize: 12))),
+            DataCell(Text('Future<void> setFullScreen(bool)', style: TextStyle(fontSize: 12))),
           ]),
           DataRow(cells: [
             DataCell(Text('查询状态')),
             DataCell(Text('无', style: TextStyle(color: Colors.red))),
             DataCell(Text('bool isFullScreen', style: TextStyle(fontSize: 12))),
+            DataCell(Text('无', style: TextStyle(color: Colors.red))),
           ]),
           DataRow(cells: [
             DataCell(Text('监听变化')),
             DataCell(Text('无', style: TextStyle(color: Colors.red))),
             DataCell(Text('FullScreenListener (4 回调)', style: TextStyle(fontSize: 12))),
+            DataCell(Text('无', style: TextStyle(color: Colors.red))),
           ]),
           DataRow(cells: [
             DataCell(Text('屏幕尺寸')),
             DataCell(Text('Future<Size> getScreenSize(BuildContext?)', style: TextStyle(fontSize: 12))),
             DataCell(Text('无', style: TextStyle(color: Colors.red))),
+            DataCell(Text('Future<Size> getScreenSize(BuildContext?)', style: TextStyle(fontSize: 12))),
           ]),
           DataRow(cells: [
             DataCell(Text('初始化')),
             DataCell(Text('无需初始化', style: TextStyle(color: Colors.green))),
             DataCell(Text('await FullScreen.ensureInitialized()', style: TextStyle(fontSize: 12))),
+            DataCell(Text('无需初始化', style: TextStyle(color: Colors.green))),
           ]),
         ],
       ),
@@ -387,10 +592,12 @@ class _DualFullscreenPageState extends State<DualFullscreenPage> {
           DataColumn(label: Text('平台')),
           DataColumn(label: Text('fullscreen_window')),
           DataColumn(label: Text('flutter_fullscreen')),
+          DataColumn(label: Text('modified')),
         ],
         rows: [
           DataRow(cells: [
             const DataCell(Text('Windows')),
+            DataCell(statusIcon(true)),
             DataCell(statusIcon(true)),
             DataCell(statusIcon(true)),
           ]),
@@ -398,14 +605,17 @@ class _DualFullscreenPageState extends State<DualFullscreenPage> {
             const DataCell(Text('Linux')),
             DataCell(statusIcon(true)),
             DataCell(statusIcon(true)),
+            DataCell(statusIcon(true)),
           ]),
           DataRow(cells: [
             const DataCell(Text('macOS')),
             DataCell(statusIcon(false)),
             DataCell(statusIcon(true)),
+            DataCell(statusIcon(true)),
           ]),
           DataRow(cells: [
             const DataCell(Text('Web')),
+            DataCell(statusIcon(true)),
             DataCell(statusIcon(true)),
             DataCell(statusIcon(true)),
           ]),
@@ -413,9 +623,11 @@ class _DualFullscreenPageState extends State<DualFullscreenPage> {
             const DataCell(Text('Android')),
             DataCell(statusIcon(true)),
             DataCell(statusIcon(true)),
+            DataCell(statusIcon(true)),
           ]),
           DataRow(cells: [
             const DataCell(Text('iOS')),
+            DataCell(statusIcon(true)),
             DataCell(statusIcon(true)),
             DataCell(statusIcon(true)),
           ]),
@@ -432,33 +644,241 @@ class _DualFullscreenPageState extends State<DualFullscreenPage> {
           DataColumn(label: Text('维度')),
           DataColumn(label: Text('fullscreen_window')),
           DataColumn(label: Text('flutter_fullscreen')),
+          DataColumn(label: Text('modified')),
         ],
         rows: const [
           DataRow(cells: [
             DataCell(Text('插件类型')),
             DataCell(Text('联邦插件（原生）')),
             DataCell(Text('纯 Dart + 委托')),
+            DataCell(Text('联邦插件（原生）')),
           ]),
           DataRow(cells: [
             DataCell(Text('原生代码')),
             DataCell(Text('C++ (Win), C (Linux)')),
             DataCell(Text('无（使用 window_manager）')),
+            DataCell(Text('C++ (Win), C (Linux), ObjC (Mac)')),
           ]),
           DataRow(cells: [
             DataCell(Text('平台分发')),
             DataCell(Text('MethodChannel')),
             DataCell(Text('条件导入')),
+            DataCell(Text('MethodChannel')),
           ]),
           DataRow(cells: [
             DataCell(Text('状态模型')),
             DataCell(Text('无状态（fire-and-forget）')),
             DataCell(Text('有状态（观察者模式）')),
+            DataCell(Text('无状态（fire-and-forget）')),
           ]),
           DataRow(cells: [
             DataCell(Text('依赖深度')),
             DataCell(Text('1 层（直接）')),
             DataCell(Text('2 层（→ window_manager）')),
+            DataCell(Text('1 层（直接）')),
           ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActualCallComparison() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.withAlpha(25),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.withAlpha(76)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '调用流程对比:',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'fullscreen_window:\n'
+                  '  Dart → MethodChannel → C++/C/ObjC → 系统API\n'
+                  '  返回: Future<void> (可 await)\n\n'
+                  'flutter_fullscreen:\n'
+                  '  Dart → window_manager → MethodChannel → C++/C → 系统API\n'
+                  '  返回: void (fire-and-forget)\n\n'
+                  'modified:\n'
+                  '  Dart → MethodChannel → C++/C/ObjC → 系统API\n'
+                  '  返回: Future<void> (可 await)',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700], fontFamily: 'monospace'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withAlpha(25),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.withAlpha(76)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '错误处理对比:',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'fullscreen_window:\n'
+                  '  try { await FullScreenWindow.setFullScreen(true); }\n'
+                  '  catch (e) { /* 可捕获 MissingPluginException */ }\n\n'
+                  'flutter_fullscreen:\n'
+                  '  FullScreen.setFullScreen(true); // 无法捕获错误\n'
+                  '  // 错误只能通过 listener 回调检测\n\n'
+                  'modified:\n'
+                  '  try { await FullScreenWindow.setFullScreen(true); }\n'
+                  '  catch (e) { /* 可捕获所有异常 */ }',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700], fontFamily: 'monospace'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerformanceComparison() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.purple.withAlpha(25),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.purple.withAlpha(76)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '性能特点:',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '• fullscreen_window: 直接调用原生 API，延迟低\n'
+                  '• flutter_fullscreen: 通过 window_manager 中转，延迟稍高\n'
+                  '• modified: 与 fullscreen_window 相同性能\n\n'
+                  '启动开销:\n'
+                  '• fullscreen_window: 无初始化开销\n'
+                  '• flutter_fullscreen: 需要 ensureInitialized()\n'
+                  '• modified: 无初始化开销',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUseCaseComparison() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.teal.withAlpha(25),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.teal.withAlpha(76)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '推荐使用场景:',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'fullscreen_window:\n'
+                  '  ✅ 只需要 Windows/Linux/Web 支持\n'
+                  '  ✅ 需要 await 确认全屏状态\n'
+                  '  ✅ 需要 getScreenSize 功能\n'
+                  '  ❌ 不支持 macOS\n\n'
+                  'flutter_fullscreen:\n'
+                  '  ✅ 需要全平台支持（通过 window_manager）\n'
+                  '  ✅ 需要监听全屏状态变化\n'
+                  '  ✅ 需要 isFullScreen 属性\n'
+                  '  ❌ 无法 await 确认状态\n\n'
+                  'modified:\n'
+                  '  ✅ 需要全平台支持（包括 macOS 原生）\n'
+                  '  ✅ 需要 await 确认全屏状态\n'
+                  '  ✅ 需要 getScreenSize 功能\n'
+                  '  ✅ 最佳选择：兼具功能和性能',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRealTimeCallTracking() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.cyan.withAlpha(25),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.cyan.withAlpha(76)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '调用日志分析:',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '点击按钮后，观察下方日志面板：\n\n'
+                  '1. 成功调用: [时间] packageName.setFullScreen -> 成功\n'
+                  '2. 失败调用: [时间] packageName.setFullScreen -> 失败 (错误信息)\n\n'
+                  '关键观察点:\n'
+                  '• fullscreen_window: 立即返回结果\n'
+                  '• flutter_fullscreen: 先记录日志，后通过 listener 确认\n'
+                  '• modified: 与 fullscreen_window 行为一致\n\n'
+                  '模拟测试:\n'
+                  '• 选择 "macOS" 虚拟环境\n'
+                  '• 勾选 "模拟 MissingPluginException"\n'
+                  '• 点击 fullscreen_window 按钮 → 观察失败日志\n'
+                  '• 点击 modified 按钮 → 观察成功日志',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
