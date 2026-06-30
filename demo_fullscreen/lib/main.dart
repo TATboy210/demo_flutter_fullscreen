@@ -145,7 +145,7 @@ class _DualFullscreenPageState extends State<DualFullscreenPage> {
       if (_isMacOSEnvironment && _simulateMissingPlugin) {
         throw MissingPluginException('No implementation found for method setFullScreen on channel fullscreen_window');
       }
-      await FullScreenWindow.setFullScreen(_fwFullscreen);
+      await fullScreenWindow.setFullScreen(_fwFullscreen);
       _addLog('fullscreen_window', 'setFullScreen', true);
       // 退出全屏后强制布局重建（Windows 布局修复）
       if (!_fwFullscreen && mounted) {
@@ -196,7 +196,7 @@ class _DualFullscreenPageState extends State<DualFullscreenPage> {
     setState(() => _modFullscreen = !_modFullscreen);
     try {
       // modified 版本在所有平台都应该工作（包括 macOS）
-      await FullScreenWindow.setFullScreen(_modFullscreen);
+      await fullScreenWindow.setFullScreen(_modFullscreen);
       _addLog('fullscreen_window (modified)', 'setFullScreen', true);
       // 退出全屏后强制布局重建（Windows 布局修复）
       if (!_modFullscreen && mounted) {
@@ -736,13 +736,13 @@ class _DualFullscreenPageState extends State<DualFullscreenPage> {
                 const SizedBox(height: 8),
                 Text(
                   'fullscreen_window:\n'
-                  '  try { await FullScreenWindow.setFullScreen(true); }\n'
+                  '  try { await fullScreenWindow.setFullScreen(true); }\n'
                   '  catch (e) { /* 可捕获 MissingPluginException */ }\n\n'
                   'flutter_fullscreen:\n'
                   '  FullScreen.setFullScreen(true); // 无法捕获错误\n'
                   '  // 错误只能通过 listener 回调检测\n\n'
                   'modified:\n'
-                  '  try { await FullScreenWindow.setFullScreen(true); }\n'
+                  '  try { await fullScreenWindow.setFullScreen(true); }\n'
                   '  catch (e) { /* 可捕获所有异常 */ }',
                   style: TextStyle(fontSize: 12, color: Colors.grey[700], fontFamily: 'monospace'),
                 ),
